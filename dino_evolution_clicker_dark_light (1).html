@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dino Evolution Clicker</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg1:#72d6ff;--bg2:#dff7bc;--text:#16351c;--panel:#fffffff0;--border:#4b9954;--shadow:#35733e;--soft:#f4fff3;--softborder:#c0ddc2;--muted:#55705a}
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(var(--bg1),var(--bg2));color:var(--text);transition:.25s}
+body.dark{--bg1:#101827;--bg2:#1d2a35;--text:#eef7ef;--panel:#17231eee;--border:#4d8f59;--shadow:#244a2c;--soft:#213127;--softborder:#36563d;--muted:#b7c9ba}
+body.dark .top p{color:#b7c9ba}
+body.dark .bar{background:#34443a}
+body.dark hr{border-color:#36563d}
+.wrap{max-width:1100px;margin:auto;padding:18px}.top{text-align:center}.top h1{font-size:42px;margin:5px}.top p{margin:5px 0 15px;color:#426b47}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card,.panel{background:#fffffff0;border:3px solid #4b9954;border-radius:18px;padding:14px;box-shadow:0 5px 0 #35733e}.stat{text-align:center;font-weight:bold}.stat b{display:block;font-size:28px;color:#23692c;margin-top:5px}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px}.main{text-align:center;min-height:560px}.world{font-size:25px;font-weight:bold}.dino{font-size:145px;cursor:pointer;user-select:none;margin:20px 0;transition:.08s}.dino:active{transform:scale(.88)}button{border:0;border-radius:11px;padding:11px 14px;margin:4px;background:#4caf50;color:#fff;font-weight:bold;cursor:pointer;box-shadow:0 4px 0 #32753a}button:disabled{background:#9ba89d;box-shadow:0 4px 0 #6c776e;cursor:not-allowed}.bar{height:18px;background:#d8e6d9;border-radius:20px;overflow:hidden;margin:12px}.fill{height:100%;width:0;background:#e7ad25}.tabs{display:flex;flex-wrap:wrap;margin-bottom:8px}.tab{background:#397d43}.section{display:none}.section.active{display:block}.item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft);border:2px solid var(--softborder);border-radius:12px;padding:9px;margin:8px 0}.item small{display:block;color:var(--muted)}.log{height:90px;overflow:auto;text-align:left;font-size:13px;margin-top:10px}.badges{display:grid;grid-template-columns:1fr 1fr;gap:7px}.badge{padding:10px;border-radius:10px;background:#eef6ef;border:2px solid #c8ddca}.locked{opacity:.5}.reset{background:#d45b45;box-shadow:0 4px 0 #913d30}.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#183d20;color:white;padding:10px 16px;border-radius:20px;display:none}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.dino{font-size:115px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><h1>🦖 Dino Evolution Clicker</h1><p>Click • evolve • explore • build your prehistoric empire!</p></header>
+
+<div class="stats">
+<div class="card stat">🧬 DNA<b id="dna">0</b></div>
+<div class="card stat">💰 Coins<b id="coins">0</b></div>
+<div class="card stat">⚡ DNA / click<b id="power">1</b></div>
+<div class="card stat">⚡ DNA / second<b id="dps">0</b></div>
+</div>
+
+<div class="grid">
+<section class="panel main">
+<div class="world" id="world">🌴 Fern Forest</div>
+<div id="worldAnimal" style="font-size:22px;margin:8px 0;font-weight:bold">🦧 Jungle Meme Beast</div>
+<div class="dino" id="dino" title="Click me!">🥚</div>
+<h2 id="dinoName">Dino Egg</h2>
+<div id="nextText">Next: 🦎 Baby Raptor</div><div style="margin:8px;font-weight:bold">Evolution <span id="evoNumber">1</span> / 600</div>
+<div class="bar"><div class="fill" id="xp"></div></div>
+<div id="progress">0 / 50 DNA</div>
+<br>
+<button id="evolve">🧬 EVOLVE</button>
+<button id="goldClick">💰 Golden Click</button>
+<div class="log" id="log"></div>
+</section>
+
+<aside class="panel">
+<div class="tabs">
+<button class="tab" data-tab="upgrades">⬆️ Upgrades</button>
+<button class="tab" data-tab="worlds">🌎 Worlds</button>
+<button class="tab" data-tab="eggs">🥚 Eggs</button>
+<button class="tab" data-tab="achievements">🏆 Achievements</button>
+</div>
+<div id="upgrades" class="section active">
+<h2>⚡ DNA Per Second Upgrades</h2>
+<p>Spend coins to make your dinosaur earn more DNA automatically.</p>
+<div id="dpsShop"></div>
+<hr>
+<h2>⬆️ Click Upgrades</h2>
+<div id="clickShop"></div>
+</div>
+<div id="worlds" class="section"></div>
+<div id="eggs" class="section"></div>
+<div id="achievements" class="section"></div>
+<br><button id="themeToggle">🌙 Dark Mode</button><button class="reset" id="reset">Reset Save</button>
+</aside>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const baseDinoStages=[
+["🥚","Dino Egg"],["🦎","Tiny Raptor"],["🦖","Raptor"],["🐊","Spinosaurus"],
+["🦕","Brachiosaurus"],["👑","T-Rex King"],["🐉","Dino Titan"],["🦖","Giga Monster"],
+["🌟","Dino God"],["👽","Cosmic Dino"]
+];
+const worldDinoPrefixes=["Fern","Volcano","Desert","Frozen","Moon","Meteor"];
+const dinoIcons=["🥚","🦎","🦖","🐊","🦕","👑","🐉","🌟","👽","🔥"];
+const dinos=Array.from({length:600},(_,i)=>{
+  const worldIndex=Math.floor(i/100), level=(i%100)+1;
+  const prefix=worldDinoPrefixes[worldIndex];
+  const icon=dinoIcons[(i)%dinoIcons.length];
+  const names=["Sprout","Scout","Hunter","Crusher","Stomper","Rex","Titan","Alpha","Mythic","God"];
+  const tier=Math.floor((level-1)/10)+1;
+  const name=prefix+" "+names[(level-1)%10]+" Lv."+level;
+  const req=Math.floor(50*Math.pow(1.12,i));
+  return [icon,name,req];
+});
+const worlds=[
+["🌴","Fern Forest",0,1],["🌋","Volcano Valley",100,1.5],["🏜️","Jurassic Desert",200,2],
+["❄️","Frozen Cretaceous",300,3],["🌌","Dino Moon",400,5],["☄️","Meteor World",500,8]
+];
+const worldAnimals=[
+["🦧","Jungle Meme Beast"],
+["🦍","Volcano Gorilla"],
+["🐪","Desert Screamer"],
+["🐧","Ice Wobble Penguin"],
+["🐸","Moon Frog"],
+["🦆","Meteor Duck"]
+];
+const upgrades=[
+["Sharp Claws","DNA/click +2",25,2],["Mega Bite","DNA/click +8",150,8],
+["Ancient Power","DNA/click +30",800,30],["Meteor DNA","DNA/click +120",4000,120],
+["Titan Strength","DNA/click +500",25000,500]
+];
+const eggs=[
+["Common Egg","Hatches 100 coins",100,100],["Rare Egg","Hatches 500 coins",500,500],
+["Epic Egg","Hatches 2,500 coins",2500,2500],["Legendary Egg","Hatches 15,000 coins",15000,15000]
+];
+const achievementDefs=[
+["First Click","Click once",()=>S.clicks>=1,100],["Evolving","Evolve once",()=>S.evolution>=1,250],
+["Explorer","Unlock 3 worlds",()=>S.world>=2,500],["Millionaire","Get 1,000,000 coins",()=>S.coins>=1000000,5000],
+["Dino Master","Reach evolution 5",()=>S.evolution>=5,2500],["Click Machine","Make 10,000 clicks",()=>S.clicks>=10000,10000]
+];
+let S=JSON.parse(localStorage.getItem("dinoSave")||"null")||{dna:0,coins:0,power:1,auto:0,evolution:0,world:0,clicks:0,bought:[],hatched:[],ach:[],gold:0};
+let goldenUntil=0;
+
+function fmt(n){return Math.floor(n).toLocaleString()}
+function save(){localStorage.setItem("dinoSave",JSON.stringify(S))}
+let theme=localStorage.getItem("dinoTheme")||"light";
+function applyTheme(){
+  document.body.classList.toggle("dark",theme==="dark");
+  document.getElementById("themeToggle").textContent=theme==="dark"?"☀️ Light Mode":"🌙 Dark Mode";
+  localStorage.setItem("dinoTheme",theme);
+}
+function toast(t){let x=document.getElementById("toast");x.textContent=t;x.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>x.style.display="none",1600)}
+function log(t){let x=document.getElementById("log");x.innerHTML="<div>"+t+"</div>"+x.innerHTML}
+function worldMult(){return worlds[S.world][3]}
+function render(){
+document.getElementById("dna").textContent=fmt(S.dna);document.getElementById("coins").textContent=fmt(S.coins);
+document.getElementById("power").textContent=fmt(S.power*worldMult());document.getElementById("dps").textContent=fmt(S.auto*S.power*worldMult());
+let d=dinos[Math.min(S.evolution,dinos.length-1)];document.getElementById("dino").textContent=d[0];document.getElementById("dinoName").textContent=d[1];
+document.getElementById("world").textContent=worlds[S.world][0]+" "+worlds[S.world][1];document.getElementById("evoNumber").textContent=Math.min(600,S.evolution+1);
+document.getElementById("worldAnimal").textContent=worldAnimals[S.world][0]+" "+worldAnimals[S.world][1]+" — this world’s wild meme animal";
+let next=dinos[S.evolution+1];document.getElementById("nextText").textContent=next?"Next: "+next[0]+" "+next[1]:"MAX EVOLUTION";
+let req=d[2],prev=S.evolution?dinos[S.evolution-1][2]:0,pct=S.evolution>=dinos.length-1?100:Math.min(100,Math.max(0,(S.dna-prev)/(req-prev)*100));
+document.getElementById("xp").style.width=pct+"%";document.getElementById("progress").textContent=S.evolution>=dinos.length-1?"MAX EVOLUTION":fmt(Math.max(0,S.dna-prev))+" / "+fmt(req-prev)+" DNA";
+
+const dpsCost=Math.floor(100*Math.pow(1.65,S.auto));
+const dpsGain=Math.max(1,S.power);
+document.getElementById("dpsShop").innerHTML=`<div class="item"><div><b>🤖 DNA Generator Level ${S.auto}</b><small>+${fmt(dpsGain)} DNA per second</small></div><button data-dps="1" ${S.coins<dpsCost?"disabled":""}>${fmt(dpsCost)} coins</button></div><div class="item"><div><b>🚀 Passive DNA Income</b><small>Your generator works automatically every second.</small></div><span><b>${fmt(S.auto*dpsGain)} DNA/s</b></span></div>`;
+document.getElementById("clickShop").innerHTML=upgrades.map((u,i)=>`<div class="item"><div><b>${u[0]}</b><small>${u[1]}</small></div><button ${S.bought.includes(i)?"disabled":""} data-up="${i}">${S.bought.includes(i)?"OWNED":fmt(u[2])+" DNA"}</button></div>`).join("");
+document.getElementById("worlds").innerHTML=worlds.map((w,i)=>`<div class="item"><div><b>${w[0]} ${w[1]}</b><small>${i?"Evolution "+fmt(w[2])+" • x"+w[3]+" DNA":"Starting world"}</small></div><button ${S.world===i||S.evolution<w[2]?"disabled":""} data-world="${i}">${S.world===i?"HERE":"UNLOCK"}</button></div>`).join("");
+document.getElementById("eggs").innerHTML=eggs.map((e,i)=>`<div class="item"><div><b>${e[0]}</b><small>${e[1]}</small></div><button data-egg="${i}">${fmt(e[2])+" coins"}</button></div>`).join("");
+document.getElementById("achievements").innerHTML='<div class="badges">'+achievementDefs.map((a,i)=>`<div class="badge ${S.ach.includes(i)?"":"locked"}"><b>${S.ach.includes(i)?"🏆":"🔒"} ${a[0]}</b><small>${a[1]}</small></div>`).join("")+"</div>";
+}
+function clickDino(){
+let mult=worldMult()*(Date.now()<goldenUntil?5:1);S.dna+=S.power*mult;S.coins+=Math.max(1,Math.floor(S.power*.2*mult));S.clicks++;
+document.getElementById("dino").animate([{transform:"scale(1)"},{transform:"scale(1.13)"},{transform:"scale(1)"}],{duration:100});checkAchievements();save();render()
+}
+function evolve(){
+if(S.evolution>=dinos.length-1)return;
+let req=dinos[S.evolution][2];
+if(S.dna>=req){
+S.evolution++;
+S.coins+=S.evolution*250;
+const newWorld=Math.floor(S.evolution/100);
+if(newWorld>S.world && newWorld<worlds.length){
+  S.world=newWorld;
+  log("🌎 NEW WORLD! "+worlds[newWorld][0]+" "+worlds[newWorld][1]+" — you found "+worldAnimals[newWorld][0]+" "+worldAnimals[newWorld][1]+"!");
+  toast("🌎 New world unlocked!");
+}
+log("🎉 Evolved into "+dinos[S.evolution][1]+"!");
+checkAchievements();save();render()
+}else toast("Need "+fmt(req-S.dna)+" more DNA")
+}
+function buyUpgrade(i){let u=upgrades[i];if(!S.bought.includes(i)&&S.dna>=u[2]){S.dna-=u[2];S.power+=u[3];S.bought.push(i);log("⬆️ "+u[0]+" purchased!");save();render()}}
+function buyDpsUpgrade(){const cost=Math.floor(100*Math.pow(1.65,S.auto));if(S.coins>=cost){S.coins-=cost;S.auto++;log("⚡ DNA Generator upgraded! You now make "+fmt(S.auto*S.power)+" DNA/s.");toast("DNA per second increased!");save();render()}else toast("Not enough coins!")}
+function unlockWorld(i){
+if(S.evolution>=worlds[i][2]){
+S.world=i;
+log("🌎 Entered "+worlds[i][1]+"! You found "+worldAnimals[i][0]+" "+worldAnimals[i][1]+"!");
+toast("New meme animal discovered!");
+checkAchievements();save();render()
+}}
+function hatch(i){let e=eggs[i];if(S.coins>=e[2]){S.coins-=e[2];S.coins+=e[3];S.hatched.push(i);log("🥚 "+e[0]+" hatched! +"+fmt(e[3])+" coins");save();render()}else toast("Not enough coins")}
+function checkAchievements(){achievementDefs.forEach((a,i)=>{if(!S.ach.includes(i)&&a[2]()){S.ach.push(i);S.coins+=a[3];toast("🏆 Achievement: "+a[0]+" +"+fmt(a[3])+" coins");log("🏆 Achievement unlocked: "+a[0])}})}
+document.getElementById("dino").addEventListener("click",clickDino);
+document.getElementById("evolve").addEventListener("click",evolve);
+document.getElementById("goldClick").addEventListener("click",()=>{if(S.coins>=500){S.coins-=500;goldenUntil=Date.now()+15000;toast("✨ GOLDEN CLICKS x5 for 15 seconds!");render()}else toast("Need 500 coins")});
+document.getElementById("themeToggle").addEventListener("click",()=>{
+  theme=theme==="dark"?"light":"dark";
+  applyTheme();
+});
+applyTheme();
+document.getElementById("reset").addEventListener("click",()=>{if(confirm("Reset your Dino Evolution save?")){localStorage.removeItem("dinoSave");location.reload()}});
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));document.getElementById(b.dataset.tab).classList.add("active")}));
+document.addEventListener("click",e=>{if(e.target.dataset.up!==undefined)buyUpgrade(+e.target.dataset.up);if(e.target.dataset.dps!==undefined)buyDpsUpgrade();if(e.target.dataset.world!==undefined)unlockWorld(+e.target.dataset.world);if(e.target.dataset.egg!==undefined)hatch(+e.target.dataset.egg)});
+setInterval(()=>{if(S.auto){S.dna+=S.auto*S.power*worldMult();S.coins+=Math.max(1,Math.floor(S.auto*S.power*.05));checkAchievements();save();render()}},1000);
+render();
+</script>
+</body>
+</html>
